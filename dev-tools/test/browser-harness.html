@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>dsh-bg-image · 真实浏览器测试台</title>
+    <style>
+      /* 模拟 DSH 宿主的布局与不透明表面：#root 里放侧栏 + 主面板，主面板再套内容容器。 */
+      * { box-sizing: border-box; }
+      html, body, #root { height: 100%; margin: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+        color: #0f1115;
+        background: #ffffff;
+      }
+      #root { background: #ffffff; display: flex; }
+      .side {
+        width: 220px; flex: 0 0 220px;
+        background: rgb(244, 245, 248);
+        border-right: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 14px;
+        font-size: 13px;
+      }
+      .main { flex: 1 1 auto; background: rgb(252, 252, 253); display: flex; flex-direction: column; }
+      .bar { height: 46px; background: rgb(255, 255, 255); border-bottom: 1px solid rgba(0, 0, 0, 0.08); display: flex; align-items: center; padding: 0 14px; font-size: 13px; }
+      .content { flex: 1 1 auto; padding: 16px; overflow: auto; }
+      .bubble { background: rgb(255, 255, 255); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px; }
+      .probe {
+        position: fixed; left: 8px; top: 8px; z-index: 2147483600;
+        max-width: 46ch; padding: 10px 12px; border-radius: 10px;
+        background: rgba(12, 14, 18, 0.92); color: #e9edf5;
+        font: 12px/1.55 ui-monospace, Consolas, monospace;
+        white-space: pre-wrap; pointer-events: none;
+      }
+      .probe b { color: #8ef0b6; }
+      .probe i { color: #ffb4a8; font-style: normal; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <aside class="side">会话列表<br />DeepSeek Harness</aside>
+      <div class="main">
+        <div class="bar">DeepSeek Harness · 背景图测试</div>
+        <div class="content">
+          <div class="bubble">这条消息用来观察壁纸是否从面板底下透出来。</div>
+          <div class="bubble">切换「界面半透明」滑杆，面板底色会按比例变透明。</div>
+        </div>
+      </div>
+    </div>
+
+    <pre class="probe" id="probe">running…</pre>
+    <script src="./assets/grid.png.js"></script>
+    <script src="./assets/photo.png.js"></script>
+    <script>
+      // ---- 测试台工具 -------------------------------------------------------
+      const results = []
+      const probe = document.getElementById('probe')
+      const params = new URLSearchParams(location.search)
+      const img = (key) => window.__testImages && window.__testImages[key] ? window.__testImages[key] : ''
+
+      window.__harness = {
+        results,
+        ok(name, condition, detail) {
+          const pass = !!condition
+          results.push({ name, pass, detail: detail === undefined ? '' : String(detail) })
+          return pass
+        },
+        equal(name, actual, expected) {
+          return window.__harness.ok(name, actual === expected, `actual=${JSON.stringify(actual)} expected=${JSON.stringify(expected)}`)
+        },
+        match(name, actual, re) {
+          return window.__harness.ok(name, typeof actual === 'string' && re.test(actual), `actual=${JSON.stringify(actual)} re=${re}`)
+        },
+        report(extra) {
+          const failed = results.filter((r) => !r.pass)
+          const lines = results.map((r) => `${r.pass ? 'ok  ' : 'FAIL'} ${r.name}${r.pass ? '' : '\n      ' + r.detail}`)
+          const tail = `${results.length - failed.length} passed, ${failed.length} failed`
+          probe.innerHTML = `dsh-bg-image browser check\n<b>${tail}</b>${extra ? '\n' + extra : ''}\n\n` + lines.join('\n')
+          if (failed.length) probe.innerHTML = probe.innerHTML.replace('<b>', '<i>').replace('</b>', '</i>')
+          console.log('__HARNESS_RESULT__ ' + JSON.stringify({ passed: results.length - failed.length, failed: failed.length, failures: failed }))
+          document.title = failed.length ? `FAIL ${failed.length}` : 'PASS'
+          window.__harnessDone = true
+        }
+      }
+
+      // ---- 最小 __ModuleLoader__ 门面，与 DSH 的客户端模块系统同形 ------------
+      window.__ModuleLoader__ = {
+        mode: 'queue',
+        pendingQueue: [],
+        load(registration) { this.pendingQueue.push(registration) },
+        materialize(id) {
+          const registration = this.pendingQueue.find((r) => r.id === id)
+          if (!registration) throw new Error('not registered: ' + id)
+          return registration.factory((spec) => { throw new Error('unexpected require(' + spec + ')') })
+        }
+      }
+    </script>
+    <script src="../../lib/client.js"></script>
+    <script>
+      // ---- 激活插件并做断言 --------------------------------------------------
+      const errors = []
+      window.addEventListener('error', (event) => errors.push(String(event.message)))
+
+      const check = window.__harness
+      const exportsObject = window.__ModuleLoader__.materialize('dsh-bg-image')
+      exportsObject.apply({})
+
+      const bg = window.__dshBg
+      const layer = document.getElementById('dshbg-layer')
+      const face = document.querySelector('[data-dsh-bg="image"]')
+      const scrim = document.querySelector('[data-dsh-bg="scrim"]')
+
+      check.ok('bundle 注册并导出 apply()', typeof exportsObject.apply === 'function')
+      check.ok('背景层已注入 body', !!layer && layer.parentElement === document.body)
+      check.ok('图片面 + 蒙层面都存在', !!face && !!scrim)
+      check.equal('背景层在宿主内容之下', getComputedStyle(layer).zIndex, '0')
+      check.equal('背景层不吃鼠标事件', getComputedStyle(layer).pointerEvents, 'none')
+      check.ok('注入的样式带私有类名', document.getElementById('dshbg-style').textContent.includes('.dshbg-layer'))
+      // 按需求：主界面默认不出现常驻入口；悬浮按钮只在配置里显式开启后才渲染。
+      check.ok('主界面没有常驻入口按钮（默认）', !document.getElementById('dshbg-toggle'))
+      bg.set({ showFloatingButton: true })
+      check.ok('开启后悬浮按钮出现', !!document.getElementById('dshbg-toggle'))
+      bg.set({ showFloatingButton: false })
+      check.ok('关闭后悬浮按钮消失', !document.getElementById('dshbg-toggle'))
+
+      // 1) 覆盖 cover + 居中 + 60% 透明 + 轻微模糊
+      bg.set({ dataUrl: img('grid'), opacity: 0.6, blur: 4, mode: 'cover', align: 'center' })
+      check.match('cover：background-size = cover', getComputedStyle(face).backgroundSize, /^cover$/)
+      check.match('居中：background-position = 50% 50%', getComputedStyle(face).backgroundPosition, /^50% 50%$/)
+      // 透明度在真实浏览器里带 160ms 过渡，因此读内联目标值而不是过渡中的计算值。
+      check.equal('图片透明度 0.6 已写入', face.style.opacity, '0.6')
+      check.match('模糊 blur(4px) 已生效', getComputedStyle(face).filter, /blur\(4px\)/)
+      check.ok('图片 URL 已写入', getComputedStyle(face).backgroundImage.includes('data:image/png'))
+
+      // 2) 自定义大小
+      bg.set({ mode: 'custom', widthPct: 40, heightPct: 75 })
+      check.match('自定义大小 40% 75%', getComputedStyle(face).backgroundSize, /^40% 75%$/)
+
+      // 3) 位置：右下 + 偏移
+      bg.set({ align: 'bottom right', offsetX: -40, offsetY: 25 })
+      check.match('右下对齐 = 100% 100%', getComputedStyle(face).backgroundPosition, /^100% 100%$/)
+      check.match('偏移写进 transform', getComputedStyle(face).transform, /matrix\(1, 0, 0, 1, -40, 25\)|translate\(-40px, 25px\)/)
+
+      // 4) 平铺
+      bg.set({ mode: 'tile', repeat: 'repeat-x' })
+      check.match('平铺 repeat-x', getComputedStyle(face).backgroundRepeat, /repeat-x/)
+      check.match('平铺用原始像素', getComputedStyle(face).backgroundSize, /auto/)
+
+      // 5) 蒙层
+      bg.set({ scrimColor: '#101820', scrimAlpha: 0.45 })
+      check.match('蒙层 rgba 已生效', getComputedStyle(scrim).backgroundColor, /rgba\(16, 24, 32, 0\.45\)/)
+
+      // 6) 界面半透明：宿主表面应变为半透明，且 0 时还原
+      const side = document.querySelector('.side')
+      const root = document.getElementById('root')
+      bg.set({ glass: 0.6 })
+      const glassedSide = getComputedStyle(side).backgroundColor
+      const glassedRoot = getComputedStyle(root).backgroundColor
+      check.ok('侧栏底色被按比例透明化', /^rgba\(/.test(glassedSide), glassedSide)
+      check.ok('#root 底色被按比例透明化', /^rgba\(/.test(glassedRoot), glassedRoot)
+      bg.set({ glass: 0 })
+      check.match('关闭后侧栏恢复不透明', getComputedStyle(side).backgroundColor, /^rgb\(244, 245, 248\)$/)
+      check.match('关闭后 #root 恢复不透明', getComputedStyle(root).backgroundColor, /^rgb\(255, 255, 255\)$/)
+
+      // 7) 持久化 + 重载
+      bg.set({ dataUrl: img('photo'), opacity: 0.33, mode: 'contain', align: 'top left', glass: 0.25 })
+      const stored = JSON.parse(localStorage.getItem('dsh.bgImage.v1') || 'null')
+      check.ok('状态写入 localStorage', !!stored && stored.opacity === 0.33 && stored.mode === 'contain')
+      bg.reset()
+      const reloaded = JSON.parse(localStorage.getItem('dsh.bgImage.v1') || 'null')
+      check.equal('重置后回到默认透明度', reloaded.opacity, 0.85)
+
+      // ---- 供截图使用的场景 ------------------------------------------------
+      const preset = params.get('preset')
+      if (preset === 'custom') {
+        bg.set({ dataUrl: img('grid'), mode: 'custom', widthPct: 45, heightPct: 60, align: 'bottom right', offsetX: -30, offsetY: -20, opacity: 0.95, scrimAlpha: 0.15, glass: 0.35 })
+      } else if (preset === 'tile') {
+        bg.set({ dataUrl: img('grid'), mode: 'tile', repeat: 'repeat', opacity: 0.5, scrimAlpha: 0.25, glass: 0.55 })
+      } else if (preset === 'cover') {
+        bg.set({ dataUrl: img('photo'), mode: 'cover', opacity: 0.9, scrimAlpha: 0.1, glass: 0.45 })
+      } else if (preset === 'contain') {
+        bg.set({ dataUrl: img('grid'), mode: 'contain', opacity: 1, align: 'center', scrimAlpha: 0, glass: 0.2 })
+      } else if (preset === 'clear') {
+        bg.set({ dataUrl: '' })
+      } else {
+        bg.set({ dataUrl: img('photo'), mode: 'cover', opacity: 0.75, scrimAlpha: 0.2, glass: 0.4 })
+      }
+      if (params.get('panel') === '1') bg.open()
+
+      check.report(`preset=${preset || 'default'} panel=${params.get('panel') || '0'} errors=${errors.length}`)
+    </script>
+  </body>
+</html>

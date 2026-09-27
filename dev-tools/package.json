@@ -1,0 +1,11 @@
+{
+  "name": "dsh-bg-image-devtools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "dsh-bg-image 的本地测试依赖（jsdom + React），不随插件分发",
+  "dependencies": {
+    "jsdom": "^30.1.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
