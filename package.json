@@ -1,0 +1,49 @@
+{
+  "name": "dsh-bg-image",
+  "version": "1.1.0",
+  "description": "DSH Web/桌面 GUI 自定义背景图插件：入口在「插件/设置」页而非主界面，可自定义图片文件或图片 URL，并可设置大小（覆盖/包含/拉伸/自定义百分比/平铺）、位置（九宫格对齐 + 像素偏移）与透明度（图片透明度、模糊、亮度、蒙层、界面半透明）；纯浏览器半侧实现，零 bundle 补丁。",
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "background",
+    "wallpaper",
+    "theme"
+  ],
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/*.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "external": [
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
+}

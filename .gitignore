@@ -1,0 +1,18 @@
+# 本地开发/测试产物（可复现，不入库）
+dev-tools/node_modules/
+dev-tools/test/out/
+dev-tools/test/runlog.txt
+dev-tools/test/last-run.txt
+
+# 上传包（由 dev-tools 生成，含自身的 zip 会自我嵌套，不入库）
+github-upload/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.log
+
+# 打包产物
+*.tgz

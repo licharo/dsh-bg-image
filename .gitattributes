@@ -1,0 +1,4 @@
+# 统一按仓库里的 LF 存储，避免 Windows 上 autocrlf 改掉脚本换行
+* text=auto eol=lf
+*.png binary
+*.tgz binary
