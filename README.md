@@ -57,12 +57,12 @@
 如果插件已经装在这台机器上，直接填本地 tarball：
 
 ```
-C:\Users\赵祉豪\.dsh\plugin-backups\dsh-bg-image-1.1.0.tgz
+C:\Users\.dsh\plugin-backups\dsh-bg-image-1.1.0.tgz
 ```
 
 ### 方式 C：手工改 profile（等价于安装器做的事）
 
-改 `C:\Users\赵祉豪\.dsh\profiles\desktop\package.json`：
+改 `C:\Users\.dsh\profiles\desktop\package.json`：
 
 ```json
 {
@@ -86,9 +86,9 @@ C:\Users\赵祉豪\.dsh\plugin-backups\dsh-bg-image-1.1.0.tgz
 然后在 profile 目录里跑一次 pnpm（DSH 自带的即可），再重启应用：
 
 ```powershell
-& 'C:\Users\赵祉豪\AppData\Local\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe' `
-  'C:\Users\赵祉豪\AppData\Local\Programs\DeepSeek Harness\resources\runtime\pnpm\bin\pnpm.cjs' `
-  install --dir 'C:\Users\赵祉豪\.dsh\profiles\desktop'
+& 'C:\Users\AppData\Local\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe' `
+  'C:\Users\AppData\Local\Programs\DeepSeek Harness\resources\runtime\pnpm\bin\pnpm.cjs' `
+  install --dir 'C:\Users\.dsh\profiles\desktop'
 ```
 
 ### 卸载 / 回滚
