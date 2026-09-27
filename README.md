@@ -207,7 +207,7 @@ C:\Users\赵祉豪\.dsh\plugin-backups\dsh-bg-image-1.1.0.tgz
 | `dev-tools/test/browser-harness.html` | 模拟 DSH 布局的浏览器测试台 |
 
 ```powershell
-$node = 'C:\Users\赵祉豪\AppData\Local\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe'
+$node = 'C:\Users\AppData\Local\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe'
 cd D:\zhuomian\deepseek\dsh-bg-image
 & $node --check lib/client.js           # 语法
 & $node dev-tools/test/run-tests.mjs    # 单元 + jsdom + React 配置页
